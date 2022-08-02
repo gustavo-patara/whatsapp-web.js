@@ -202,6 +202,44 @@ class Chat extends Base {
     }
 
     /**
+     * Loads chat messages up to an specific ID, sorted from earliest to latest.
+     * @param {String} lastMessageId Fetch messages up to this
+     * @returns {Promise<Array<Message>>}
+     */
+    async fetchMessagesToSpecificId(latestMessageId) {
+        // thhis.client.pupPage.on('console', message => console.log(message.text()));
+        let messages = await this.client.pupPage.evaluate(async (chatId, latestMessageId) => {
+
+            const chat = window.Store.Chat.get(chatId);
+            let msgs = chat.msgs.getModelsArray();
+
+            while (true) {
+                const loadedMessages = await window.Store.ConversationMsgs.loadEarlierMsgs(chat);
+                // loadedMessages.forEach((m) => console.log(JSON.stringify(m)));
+                if (!loadedMessages || !loadedMessages.length) break;
+                loadedMessages.sort((a, b) => (a.t > b.t) ? 1 : -1);
+                let stopIteration = false;
+                loadedMessages.every(m => {
+                    if (m.id._serialized !== latestMessageId) {
+                        msgs.push(m);
+                        return true;
+                    }
+                    stopIteration = true;
+                    return false;
+                })
+                if (stopIteration) break;
+            }
+
+            return msgs.map(m => window.WWebJS.getMessageModel(m));
+
+        }, this.id._serialized, latestMessageId);
+
+        // console.log(messages);
+
+        return messages.map(m => new Message(this.client, m));
+    }
+
+    /**
      * Simulate typing in chat. This will last for 25 seconds.
      */
     async sendStateTyping() {
