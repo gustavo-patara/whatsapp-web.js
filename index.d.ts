@@ -1057,10 +1057,6 @@ declare namespace WAWebJS {
         fetchMessages: (
             searchOptions: MessageSearchOptions
         ) => Promise<Message[]>;
-        /** Loads chat messages up to an specific ID, sorted from earliest to latest. */
-        fetchMessagesWithDelay: (
-            searchOptions: MessageSearchOptions
-        ) => Promise<Message[]>;
         /** Mutes this chat forever, unless a date is specified */
         mute: (unmuteDate?: Date) => Promise<void>;
         /** Send a message to this chat */
@@ -1096,7 +1092,7 @@ declare namespace WAWebJS {
         /**
          * Fetch messages up to this message ID.
          */
-        messageIdOffset?: number;
+        messageIdOffset?: string;
         /**
          * The delay between each load to prevent a ratelimit.
          */

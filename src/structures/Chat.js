@@ -172,7 +172,7 @@ class Chat extends Base {
      * Loads chat messages, sorted from earliest to latest.
      * @param {Object} searchOptions Options for searching messages.
      * @param {Number} [searchOptions.limit] The amount of messages to return. If no limit is specified, the available messages will be returned. Note that the actual number of returned messages may be smaller if there aren't enough messages in the conversation. Set this to Infinity to load all messages.
-     * @param {Number} [searchOptions.messageIdOffset] Fetch messages up to this message ID.
+     * @param {String} [searchOptions.messageIdOffset] Fetch messages up to this message ID.
      * @param {Number} [searchOptions.delay] The delay between each load to prevent a ratelimit.
      * @returns {Promise<Array<Message>>}
      */
