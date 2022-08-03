@@ -172,8 +172,9 @@ class Chat extends Base {
      * Loads chat messages, sorted from earliest to latest.
      * @param {Object} searchOptions Options for searching messages.
      * @param {Number} [searchOptions.limit] The amount of messages to return. If no limit is specified, the available messages will be returned. Note that the actual number of returned messages may be smaller if there aren't enough messages in the conversation. Set this to Infinity to load all messages.
-     * @param {String} [searchOptions.messageIdOffset] Fetch messages up to this message ID.
+     * @param {String} [searchOptions.messageIdOffset] Fetch messages up to this message ID. Non-inclusive.
      * @param {Number} [searchOptions.delay] The delay between each load to prevent a ratelimit.
+     * @param {Date} [searchOptions.dateOffset] Fetch messages up to this date. Inclusive.
      * @returns {Promise<Array<Message>>}
      */
     async fetchMessages(searchOptions) {
@@ -203,12 +204,16 @@ class Chat extends Base {
                     if (!loadedMessages || !loadedMessages.length) break;
                     loadedMessages.sort((a, b) => (a.t > b.t ? 1 : -1));
 
-                    if (searchOptions.messageIdOffset) {
+                    if (
+                        searchOptions.messageIdOffset ||
+                        searchOptions.dateOffset
+                    ) {
                         const index = loadedMessages.findIndex((m) => {
                             if (
                                 m.id._serialized ===
-                                    searchOptions.messageIdOffset ||
-                                m.id.id === searchOptions.messageIdOffset
+                                    searchOptions?.messageIdOffset ||
+                                m.id.id === searchOptions?.messageIdOffset ||
+                                m.t < searchOptions?.dateOffset?.getDate()
                             )
                                 return true;
                             return false;

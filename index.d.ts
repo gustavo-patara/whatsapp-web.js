@@ -1090,13 +1090,17 @@ declare namespace WAWebJS {
          */
         limit?: number;
         /**
-         * Fetch messages up to this message ID.
+         * Fetch messages up to this message ID. Non-inclusive.
          */
         messageIdOffset?: string;
         /**
          * The delay between each load to prevent a ratelimit.
          */
         delay?: number;
+        /**
+         * Fetch messages up to this date. Inclusive.
+         */
+         dateOffset?: Date;
     }
 
     /**
