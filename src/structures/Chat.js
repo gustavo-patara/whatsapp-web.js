@@ -208,12 +208,15 @@ class Chat extends Base {
                         searchOptions.messageIdOffset ||
                         searchOptions.dateOffset
                     ) {
+                        const timestamp = searchOptions?.dateOffset
+                            ? searchOptions?.dateOffset?.getDate()
+                            : undefined;
                         const index = loadedMessages.findIndex((m) => {
                             if (
                                 m.id._serialized ===
                                     searchOptions?.messageIdOffset ||
                                 m.id.id === searchOptions?.messageIdOffset ||
-                                m.t < searchOptions?.dateOffset?.getDate()
+                                m.t * 1000 < timestamp
                             )
                                 return true;
                             return false;
