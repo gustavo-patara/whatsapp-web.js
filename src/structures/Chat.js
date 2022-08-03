@@ -178,7 +178,7 @@ class Chat extends Base {
      * @returns {Promise<Array<Message>>}
      */
     async fetchMessages(searchOptions) {
-        // this.client.pupPage.on("console", (message) =>
+        // this.client.pupPage.on('console', (message) =>
         //     console.log(message.text())
         // );
         let messages = await this.client.pupPage.evaluate(
@@ -187,29 +187,14 @@ class Chat extends Base {
                 const msgFilter = (m) => !m.isNotification;
                 const delay = searchOptions?.delay ?? 0;
 
-                const chat = window.Store.Chat.get(chatId);
-                let loadedMessages = chat.msgs
-                    .getModelsArray()
-                    .filter(msgFilter);
-                let msgs = [...loadedMessages];
-                loadedMessages = undefined;
-
-                let continueIteration = true;
-                while (searchOptions.limit && continueIteration) {
-                    await timer(delay);
-                    let loadedMessages =
-                        await window.Store.ConversationMsgs.loadEarlierMsgs(
-                            chat
-                        );
-                    if (!loadedMessages || !loadedMessages.length) break;
-                    loadedMessages.sort((a, b) => (a.t > b.t ? 1 : -1));
-
+                const validate = (messagesArray) => {
+                    messagesArray.sort((a, b) => (a.t < b.t ? 1 : -1));
                     if (
                         searchOptions.messageIdOffset ||
                         searchOptions.timeOffset
                     ) {
                         const timestamp = searchOptions?.timeOffset;
-                        const index = loadedMessages.findIndex((m) => {
+                        const index = messagesArray.findIndex((m) => {
                             if (
                                 m.id._serialized ===
                                     searchOptions?.messageIdOffset ||
@@ -219,11 +204,34 @@ class Chat extends Base {
                                 return true;
                             return false;
                         });
+                        
                         if (index !== -1) {
-                            continueIteration = false;
-                            loadedMessages = loadedMessages.splice(index + 1);
+                            messagesArray.splice(index, Number.MAX_VALUE);
+                            messagesArray.sort((a, b) => (a.t > b.t ? 1 : -1));
+                            return true;
                         }
                     }
+                    messagesArray.sort((a, b) => (a.t > b.t ? 1 : -1));
+                    return false;
+                };
+
+                const chat = window.Store.Chat.get(chatId);
+                let msgs = [...chat.msgs.getModelsArray().filter(msgFilter)];
+                const isDone = validate(msgs);
+                if (isDone)
+                    return msgs.map((m) => window.WWebJS.getMessageModel(m));
+
+                let continueIteration = true;
+                while (searchOptions.limit && continueIteration) {
+                    await timer(delay);
+                    let loadedMessages =
+                        await window.Store.ConversationMsgs.loadEarlierMsgs(
+                            chat
+                        );
+                    if (!loadedMessages || !loadedMessages.length) break;
+
+                    const isDone = validate(loadedMessages);
+                    if (isDone) continueIteration = false;
 
                     msgs = [...loadedMessages.filter(msgFilter), ...msgs];
                     if (msgs.length > searchOptions.limit) {
