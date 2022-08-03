@@ -81,7 +81,7 @@ class Chat extends Base {
     /**
      * Send a message to this chat
      * @param {string|MessageMedia|Location} content
-     * @param {MessageSendOptions} [options] 
+     * @param {MessageSendOptions} [options]
      * @returns {Promise<Message>} Message that was just sent
      */
     async sendMessage(content, options) {
@@ -101,7 +101,7 @@ class Chat extends Base {
      * @returns {Promise<Boolean>} result
      */
     async clearMessages() {
-        return this.client.pupPage.evaluate(chatId => {
+        return this.client.pupPage.evaluate((chatId) => {
             return window.WWebJS.sendClearChat(chatId);
         }, this.id._serialized);
     }
@@ -111,7 +111,7 @@ class Chat extends Base {
      * @returns {Promise<Boolean>} result
      */
     async delete() {
-        return this.client.pupPage.evaluate(chatId => {
+        return this.client.pupPage.evaluate((chatId) => {
             return window.WWebJS.sendDeleteChat(chatId);
         }, this.id._serialized);
     }
@@ -164,86 +164,84 @@ class Chat extends Base {
     /**
      * Mark this chat as unread
      */
-    async markUnread(){
+    async markUnread() {
         return this.client.markChatUnread(this.id._serialized);
     }
 
     /**
      * Loads chat messages, sorted from earliest to latest.
-     * @param {Object} searchOptions Options for searching messages. Right now only limit is supported.
+     * @param {Object} searchOptions Options for searching messages.
      * @param {Number} [searchOptions.limit] The amount of messages to return. If no limit is specified, the available messages will be returned. Note that the actual number of returned messages may be smaller if there aren't enough messages in the conversation. Set this to Infinity to load all messages.
+     * @param {Number} [searchOptions.messageIdOffset] Fetch messages up to this message ID.
+     * @param {Number} [searchOptions.delay] The delay between each load to prevent a ratelimit.
      * @returns {Promise<Array<Message>>}
      */
     async fetchMessages(searchOptions) {
-        let messages = await this.client.pupPage.evaluate(async (chatId, searchOptions) => {
-            const msgFilter = m => !m.isNotification; // dont include notification messages
+        // this.client.pupPage.on("console", (message) =>
+        //     console.log(message.text())
+        // );
+        let messages = await this.client.pupPage.evaluate(
+            async (chatId, searchOptions) => {
+                const timer = (ms) => new Promise((res) => setTimeout(res, ms));
+                const msgFilter = (m) => !m.isNotification;
+                const delay = searchOptions?.delay ?? 0;
 
-            const chat = window.Store.Chat.get(chatId);
-            let msgs = chat.msgs.getModelsArray().filter(msgFilter);
+                const chat = window.Store.Chat.get(chatId);
+                let loadedMessages = chat.msgs
+                    .getModelsArray()
+                    .filter(msgFilter);
+                let msgs = [...loadedMessages];
+                loadedMessages = undefined;
 
-            if (searchOptions && searchOptions.limit > 0) {
-                while (msgs.length < searchOptions.limit) {
-                    const loadedMessages = await window.Store.ConversationMsgs.loadEarlierMsgs(chat);
+                let continueIteration = true;
+                while (searchOptions.limit && continueIteration) {
+                    await timer(delay);
+                    let loadedMessages =
+                        await window.Store.ConversationMsgs.loadEarlierMsgs(
+                            chat
+                        );
                     if (!loadedMessages || !loadedMessages.length) break;
-                    msgs = [...loadedMessages.filter(msgFilter), ...msgs];
-                }
-                
-                if (msgs.length > searchOptions.limit) {
-                    msgs.sort((a, b) => (a.t > b.t) ? 1 : -1);
-                    msgs = msgs.splice(msgs.length - searchOptions.limit);
-                }
-            }
+                    loadedMessages.sort((a, b) => (a.t > b.t ? 1 : -1));
 
-            return msgs.map(m => window.WWebJS.getMessageModel(m));
-
-        }, this.id._serialized, searchOptions);
-
-        return messages.map(m => new Message(this.client, m));
-    }
-
-    /**
-     * Loads chat messages up to an specific ID, sorted from earliest to latest.
-     * @param {String} lastMessageId Fetch messages up to this
-     * @returns {Promise<Array<Message>>}
-     */
-    async fetchMessagesToSpecificId(latestMessageId) {
-        // thhis.client.pupPage.on('console', message => console.log(message.text()));
-        let messages = await this.client.pupPage.evaluate(async (chatId, latestMessageId) => {
-
-            const chat = window.Store.Chat.get(chatId);
-            let msgs = chat.msgs.getModelsArray();
-
-            while (true) {
-                const loadedMessages = await window.Store.ConversationMsgs.loadEarlierMsgs(chat);
-                // loadedMessages.forEach((m) => console.log(JSON.stringify(m)));
-                if (!loadedMessages || !loadedMessages.length) break;
-                loadedMessages.sort((a, b) => (a.t > b.t) ? 1 : -1);
-                let stopIteration = false;
-                loadedMessages.every(m => {
-                    if (m.id._serialized !== latestMessageId) {
-                        msgs.push(m);
-                        return true;
+                    if (searchOptions.messageIdOffset) {
+                        const index = loadedMessages.findIndex((m) => {
+                            if (
+                                m.id._serialized ===
+                                    searchOptions.messageIdOffset ||
+                                m.id.id === searchOptions.messageIdOffset
+                            )
+                                return true;
+                            return false;
+                        });
+                        if (index !== -1) {
+                            continueIteration = false;
+                            loadedMessages = loadedMessages.splice(index + 1);
+                        }
                     }
-                    stopIteration = true;
-                    return false;
-                })
-                if (stopIteration) break;
-            }
 
-            return msgs.map(m => window.WWebJS.getMessageModel(m));
+                    msgs = [...loadedMessages.filter(msgFilter), ...msgs];
+                    if (msgs.length > searchOptions.limit) {
+                        msgs = msgs.splice(msgs.length - searchOptions.limit);
+                        break;
+                    }
+                }
 
-        }, this.id._serialized, latestMessageId);
+                return msgs.map((m) => window.WWebJS.getMessageModel(m));
+            },
+            this.id._serialized,
+            searchOptions
+        );
 
         // console.log(messages);
 
-        return messages.map(m => new Message(this.client, m));
+        return messages.map((m) => new Message(this.client, m));
     }
 
     /**
      * Simulate typing in chat. This will last for 25 seconds.
      */
     async sendStateTyping() {
-        return this.client.pupPage.evaluate(chatId => {
+        return this.client.pupPage.evaluate((chatId) => {
             window.WWebJS.sendChatstate('typing', chatId);
             return true;
         }, this.id._serialized);
@@ -253,7 +251,7 @@ class Chat extends Base {
      * Simulate recording audio in chat. This will last for 25 seconds.
      */
     async sendStateRecording() {
-        return this.client.pupPage.evaluate(chatId => {
+        return this.client.pupPage.evaluate((chatId) => {
             window.WWebJS.sendChatstate('recording', chatId);
             return true;
         }, this.id._serialized);
@@ -263,7 +261,7 @@ class Chat extends Base {
      * Stops typing or recording in chat immediately.
      */
     async clearState() {
-        return this.client.pupPage.evaluate(chatId => {
+        return this.client.pupPage.evaluate((chatId) => {
             window.WWebJS.sendChatstate('stop', chatId);
             return true;
         }, this.id._serialized);
