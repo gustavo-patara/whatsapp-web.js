@@ -1098,9 +1098,9 @@ declare namespace WAWebJS {
          */
         delay?: number;
         /**
-         * Fetch messages up to this date. Inclusive.
+         * Fetch messages up to this UNIX time, in milliseconds. Inclusive.
          */
-         dateOffset?: Date;
+        timeOffset?: number;
     }
 
     /**
