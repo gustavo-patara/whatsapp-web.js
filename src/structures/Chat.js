@@ -182,6 +182,10 @@ class Chat extends Base {
         // this.client.pupPage.on('console', (message) =>
         //     console.log(message.text())
         // );
+        await this.client.pupPage.exposeFunction('WJS_iterationCallback', () => {
+            if (searchOptions.iterationCallback) searchOptions.iterationCallback();
+        });
+
         let messages = await this.client.pupPage.evaluate(
             async (chatId, searchOptions) => {
                 const timer = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -224,7 +228,7 @@ class Chat extends Base {
 
                 let continueIteration = true;
                 while (searchOptions.limit && continueIteration) {
-                    if (searchOptions.iterationCallback) searchOptions.iterationCallback();
+                    window.WJS_iterationCallback();
                     await timer(delay);
                     let loadedMessages =
                         await window.Store.ConversationMsgs.loadEarlierMsgs(
