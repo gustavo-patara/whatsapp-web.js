@@ -1104,7 +1104,7 @@ declare namespace WAWebJS {
         /**
          * Function to be called on each iteration. Useful for measuring healthcheck.
          */
-        iterationCallback?: number;
+        iterationCallback?(): void;
     }
 
     /**
