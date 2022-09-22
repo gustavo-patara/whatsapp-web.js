@@ -175,6 +175,7 @@ class Chat extends Base {
      * @param {String} [searchOptions.messageIdOffset] Fetch messages up to this message ID. Non-inclusive.
      * @param {Number} [searchOptions.delay] The delay between each load to prevent a ratelimit.
      * @param {Number} [searchOptions.timeOffset] Fetch messages up to this UNIX time, in milliseconds. Inclusive.
+     * @param {CallableFunction} [searchOptions.iterationCallback] Function to be called on each iteration. Useful for measuring healthcheck.
      * @returns {Promise<Array<Message>>}
      */
     async fetchMessages(searchOptions) {
@@ -223,6 +224,7 @@ class Chat extends Base {
 
                 let continueIteration = true;
                 while (searchOptions.limit && continueIteration) {
+                    if (searchOptions.iterationCallback) searchOptions.iterationCallback();
                     await timer(delay);
                     let loadedMessages =
                         await window.Store.ConversationMsgs.loadEarlierMsgs(

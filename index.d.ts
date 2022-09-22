@@ -1101,6 +1101,10 @@ declare namespace WAWebJS {
          * Fetch messages up to this UNIX time, in milliseconds. Inclusive.
          */
         timeOffset?: number;
+        /**
+         * Function to be called on each iteration. Useful for measuring healthcheck.
+         */
+        iterationCallback?: number;
     }
 
     /**
