@@ -182,9 +182,13 @@ class Chat extends Base {
         // this.client.pupPage.on('console', (message) =>
         //     console.log(message.text())
         // );
-        await this.client.pupPage.exposeFunction('WJS_iterationCallback', () => {
-            if (searchOptions.iterationCallback) searchOptions.iterationCallback();
-        });
+        try {
+            await this.client.pupPage.exposeFunction('WJS_iterationCallback', () => {
+                if (searchOptions.iterationCallback) searchOptions.iterationCallback();
+            });
+        } catch {
+            // skip
+        }
 
         let messages = await this.client.pupPage.evaluate(
             async (chatId, searchOptions) => {
